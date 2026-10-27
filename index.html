@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<meta name="description" content="Karing 客户端下载中心">
+<title>Karing · 下载中心</title>
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
+<style>
+:root{font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#eef2ff;background:#080c16}*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 50% -20%,#24355a 0%,#0b1120 48%,#080c16 100%)}.wrap{max-width:1050px;margin:auto;padding:32px 22px 80px}.top{display:flex;justify-content:space-between;align-items:center}.brand{font-weight:800;font-size:19px;letter-spacing:.4px}.brand span{color:#74a7ff}.tag{border:1px solid #29334a;border-radius:99px;padding:8px 12px;font-size:12px;color:#a5b6d5}.hero{text-align:center;margin:100px 0 62px}.eyebrow{font-size:13px;letter-spacing:2px;color:#8eb8ff;font-weight:700}.hero h1{font-size:clamp(36px,6vw,62px);margin:18px 0;letter-spacing:-1.8px}.hero p{color:#9caac5;line-height:1.8;margin:0}.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}.card{background:linear-gradient(155deg,#19243a,#101827);border:1px solid #2a3852;border-radius:20px;padding:27px;min-height:265px;display:flex;flex-direction:column;box-shadow:0 12px 40px #0002}.symbol{font-size:30px;margin-bottom:21px}.card h2{font-size:21px;margin:0 0 8px}.meta{color:#99a8c2;font-size:13px;margin:0 0 28px}.card button{margin-top:auto}.btn{border:0;border-radius:11px;padding:13px 16px;background:#79aaff;color:#081325;font-size:14px;font-weight:750;cursor:pointer;width:100%;transition:filter .2s}.btn:hover{filter:brightness(1.1)}.btn:disabled{opacity:.5;cursor:not-allowed}.foot{text-align:center;color:#6d7c98;font-size:12px;margin-top:52px}.overlay{position:fixed;inset:0;background:#02050bd9;display:none;align-items:center;justify-content:center;padding:20px;z-index:5}.overlay.open{display:flex}.modal{background:#121b2d;border:1px solid #35435f;border-radius:20px;padding:28px;width:100%;max-width:430px;box-shadow:0 20px 70px #0009}.modalhead{display:flex;justify-content:space-between;align-items:center}.modal h3{margin:0;font-size:21px}.close{border:0;background:transparent;color:#aab7d0;font-size:26px;cursor:pointer}.modal p{color:#9caac5;font-size:13px;line-height:1.7}.widget{min-height:78px;display:flex;align-items:center;justify-content:center;margin:20px 0}.status{font-size:13px;min-height:20px;color:#a9bad7;margin:12px 0}.status.error{color:#ff9c9c}.tip{text-align:center;color:#8091ad;font-size:13px;margin-top:26px}@media(max-width:700px){.hero{margin:70px 0 38px}.grid{grid-template-columns:1fr}.card{min-height:215px}.wrap{padding:24px 18px 50px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="top"><div class="brand">Karing <span>Downloads</span></div><div class="tag">安全文件分发</div></header>
+<section class="hero"><div class="eyebrow">DOWNLOAD CENTER</div><h1>选择适合你的客户端</h1><p>选择对应系统的安装包，完成安全验证后即可获取临时下载链接。<br>无需注册账号，验证后直接下载。</p></section>
+<main class="grid" id="files">
+  <article class="card"><div class="symbol" aria-hidden="true">◈</div><h2>Android</h2><p class="meta">APK 安装包 · 53 MB</p><button type="button" class="btn" data-index="0">安全下载 →</button></article>
+  <article class="card"><div class="symbol" aria-hidden="true">⌘</div><h2>macOS</h2><p class="meta">DMG 安装包 · 99 MB</p><button type="button" class="btn" data-index="1">安全下载 →</button></article>
+  <article class="card"><div class="symbol" aria-hidden="true">▦</div><h2>Windows</h2><p class="meta">EXE 安装程序 · 45 MB</p><button type="button" class="btn" data-index="2">安全下载 →</button></article>
+</main>
+<div class="tip">受保护的下载链接有效期为 10 分钟 · 下载文件由独立服务器提供</div>
+<footer class="foot">© 2026 Karing Downloads</footer>
+</div>
+<div class="overlay" id="overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+<div class="modal"><div class="modalhead"><h3 id="modal-title">安全验证</h3><button class="close" type="button" id="close" aria-label="关闭">×</button></div><p id="selected"></p><p>请完成人机验证，验证通过后点击下方按钮开始下载。</p><div class="widget" id="turnstile"></div><div class="status" id="status" aria-live="polite"></div><button type="button" class="btn" id="confirm" disabled>验证后获取下载链接</button></div>
+</div>
+<script>
+'use strict';
+const CONFIG={workerApi:'https://api.vketo.de',turnstileSiteKey:'0x4AAAAAACzaLWlvObR79aUK'};
+const files=[
+{id:'karing_android.apk',name:'Android',size:'53 MB'},
+{id:'karing_macos.dmg',name:'macOS',size:'99 MB'},
+{id:'karing_windows.exe',name:'Windows',size:'45 MB'}
+];
+const $=id=>document.getElementById(id);
+let current=null,widgetId=null,token='',busy=false,session=0;
+function setStatus(message,error=false){$('status').textContent=message;$('status').className='status'+(error?' error':'');}
+function removeWidget(){if(widgetId!==null&&window.turnstile){try{window.turnstile.remove(widgetId);}catch(e){console.warn(e);}}widgetId=null;$('turnstile').replaceChildren();}
+function openModal(file){if(busy)return;session++;removeWidget();current=file;token='';$('confirm').disabled=true;$('selected').textContent=`准备下载：${file.name} · ${file.size}`;$('overlay').classList.add('open');setStatus('正在加载安全验证…');mountWidget();}
+function mountWidget(){if(!current||widgetId!==null)return;if(!window.turnstile){setStatus('正在加载 Cloudflare 验证组件…');return;}const generation=session;try{widgetId=window.turnstile.render('#turnstile',{sitekey:CONFIG.turnstileSiteKey,callback:value=>{if(generation!==session)return;token=value;$('confirm').disabled=false;setStatus('验证成功，可以开始下载。');},'expired-callback':()=>{if(generation!==session)return;token='';$('confirm').disabled=true;setStatus('验证已过期，请重新验证。',true);},'error-callback':()=>{if(generation!==session)return;token='';$('confirm').disabled=true;setStatus('验证失败，请关闭窗口重试。',true);}});setStatus('请完成人机验证。');}catch(e){console.error(e);setStatus('验证组件初始化失败，请刷新网页。',true);}}
+function closeModal(){if(busy)return;session++;$('overlay').classList.remove('open');current=null;token='';removeWidget();}
+$('files').addEventListener('click',event=>{const button=event.target.closest('button[data-index]');if(!button)return;const file=files[Number(button.dataset.index)];if(file)openModal(file);});
+$('close').addEventListener('click',closeModal);
+$('overlay').addEventListener('click',e=>{if(e.target===$('overlay'))closeModal();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
+setInterval(()=>{if(current&&widgetId===null&&window.turnstile)mountWidget();},400);
+async function requestDownload(){if(!current||!token||busy)return;busy=true;$('confirm').disabled=true;setStatus('正在申请临时下载链接…');try{
+const response=await fetch(CONFIG.workerApi+'/api/download',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({filename:current.id,token})});
+const data=await response.json().catch(()=>({}));if(!response.ok||!data.ok)throw new Error(data.error||'验证失败，请重试');
+const link=new URL(data.url);if(link.protocol!=='https:'||link.hostname!=='dl.vketo.de'||link.pathname!=='/download/'+current.id||!link.searchParams.has('expires')||!link.searchParams.has('sig'))throw new Error('下载链接不正确');
+setStatus('验证成功，正在开始下载…');window.location.assign(link.href);setTimeout(()=>{busy=false;closeModal();},1000);
+}catch(error){console.error(error);busy=false;token='';$('confirm').disabled=true;setStatus(error.message||'下载请求失败',true);if(widgetId!==null&&window.turnstile)window.turnstile.reset(widgetId);}}
+$('confirm').addEventListener('click',requestDownload);
+</script>
+</body>
+</html>
