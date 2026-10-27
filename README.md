@@ -1,4 +1,4 @@
-# KRI Download Web
+# Download Web
 
 静态 HTML 文件分发页面，可直接部署到 Cloudflare Pages。
 
